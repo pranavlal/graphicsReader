@@ -1,0 +1,276 @@
+use Libraries.Game.Game
+use Libraries.Game.Graphics.Drawable
+use Libraries.Interface.Events.CollisionListener2D
+use Libraries.Interface.Events.CollisionEvent2D
+use Libraries.Interface.Events.KeyboardListener
+use Libraries.Interface.Events.KeyboardEvent
+
+
+
+
+use Libraries.Containers.Array
+use Libraries.Data.Formats.SeparatedValue
+use Libraries.System.File
+use Libraries.Language.Types.Text
+use Libraries.Containers.Iterator
+use Libraries.Interface.Item2D
+use Libraries.Compute.Vector2
+            use Libraries.Interface.Controls.FileChooser
+            use Libraries.Interface.Controls.FileFilter
+use Libraries.Compute.Math
+use Libraries.Game.Graphics.Camera
+use Libraries.Interface.Controls.FileFilter
+use Libraries.Sound.Speech
+
+
+class Main is Game, CollisionListener2D, KeyboardListener
+Drawable ground
+Item2D imageExplorer
+Camera camera = undefined
+number zoomCounter=1.0
+                    FileChooser chooser
+text imagePath=""
+text csvPath=""
+integer moveXAmountPositive=100
+integer moveYAmountNegative=-100
+integer moveYAmountPositive=100
+integer moveXAmountNegative=-100
+Array<Item2D> pictureElements
+Item2D pictureElement
+
+
+
+
+
+
+   action Main
+me:SetGameName("Graph Reader")
+Speech speech
+
+speech:Say("starting graph reader")
+       StartGame()
+   end
+
+   action CreateGame
+       EnablePhysics2D(true)
+
+
+       ground:SetName("Ground")
+       ground:LoadFilledRectangle(GetScreenWidth(), GetScreenHeight()-50)
+ground:SetX(0)
+ground:SetY(0)
+       ground:EnablePhysics(true)
+ground:SetUnmovable()   
+       Add(ground)
+
+
+       SetGravity2D(0, -100)
+
+
+
+camera = GetCamera2D()
+
+me:imageExplorer:SetName("explorer")
+me:imageExplorer:EnablePhysics(true)
+me:imageExplorer:SetCollidable(true)
+me:imageExplorer:SetResponsive()
+me:imageExplorer:SetSize(5, 5)
+me:imageExplorer:SetX(10)
+me:imageExplorer:SetY(10)  
+if me:imageExplorer=undefined
+output("explorer not created")
+return now
+end
+
+Add(me:imageExplorer)
+AddKeyboardListener(me)
+       AddCollisionListener(me)
+
+me:initializeDisplay()
+   end
+
+   action BeginCollision(CollisionEvent2D event)
+       Item2D itm=undefined
+Item2D itm2=undefined
+Speech speech
+itm=event:GetItemA()
+itm2=event:GetItemB()
+speech:Say(event:GetItemB():GetDescription(), false)
+
+   end
+
+action initializeDisplay()
+Speech speech
+
+FileFilter imageFilter
+imageFilter:Add("jpg")
+imageFilter:Add("png")
+speech:Say("select image file")
+                    File file = chooser:OpenFileDialog(imageFilter)
+                    if file not= undefined
+                        me:imagePath=file:GetAbsolutePath()
+
+ground:Load(file)
+ground:SetName(imagePath)
+
+end
+//open csv file
+FileFilter csvFilter
+csvFilter:Add("csv")
+ speech:Say("Choose ASCII file")
+File csvf = chooser:OpenFileDialog(csvFilter)
+if csvf not= undefined
+me:csvPath=csvf:GetAbsolutePath()
+end
+buildCharacters()                    
+end
+
+action buildCharacters()
+SeparatedValue rdr
+File f1
+integer rowCounter=0
+integer columnCounter=0
+Speech speech
+f1:SetAbsolutePath(csvPath)
+rdr:Read(f1)
+rowCounter=1 //initializing to bypass file header
+repeat while rowCounter<rdr:GetNumberOfRows()
+
+
+text xCordString=rdr:Get(rowCounter,columnCounter)
+text yCordString=rdr:Get(rowCounter,columnCounter+1)
+text description=rdr:Get(rowCounter,columnCounter+2)
+number xCord=cast(number,xCordString)
+number yCord=cast(number,yCordString)
+pictureElement:SetX(xCord)
+pictureElement:SetY(yCord)
+
+pictureElement:SetDescription(description)
+pictureElement:SetSize(xCord,yCord)
+pictureElement:SetName("element" + rowCounter)
+pictureElement:EnablePhysics( true)
+pictureElement:SetCollidable(true)
+pictureElement:SetResponsive()
+
+Add(pictureElement)
+pictureElements:Add(pictureElement)
+
+rowCounter=rowCounter+1
+end
+
+
+speech:Say("Graphic ready to use")
+end
+
+action Update(number seconds)
+number plx=me:imageExplorer:GetX()
+
+    number ply=me:imageExplorer:GetY()
+        
+camera:SetPosition(plx,ply,camera:GetPosition():GetZ())
+
+
+
+end
+
+action PressedKey(KeyboardEvent evt)
+Vector2 vct
+vct=imageExplorer:GetLinearVelocity()
+output(" original position" + vct:GetX() + ", " + vct:GetY())
+if evt:keyCode=evt:LEFT
+vct:SetX(moveXAmountNegative)      
+me:imageExplorer:SetLinearVelocity(vct)
+output("x minus")
+output("current position" + vct:GetX() + ", " + vct:GetY())
+elseif evt:keyCode=evt:RIGHT
+vct:SetX(moveXAmountPositive)
+      me:imageExplorer:SetLinearVelocity(vct)
+output("x plus")
+output("current position" + vct:GetX() + ", " + vct:GetY())
+elseif evt:keyCode=evt:UP
+vct:SetY(moveYAmountPositive)
+me:imageExplorer:SetLinearVelocity(vct)
+output("y plus")
+output("current position" + vct:GetX() + ", " + vct:GetY())
+elseif evt:keyCode=evt:DOWN
+vct:SetY(moveYAmountNegative)
+me:imageExplorer:SetLinearVelocity(vct)
+output("y minus")
+output("current position" + vct:GetX() + ", " + vct:GetY())
+elseif evt:keyCode=evt:F
+findClosestItem()
+
+elseif evt:keyCode=evt:W
+whereAmI()
+elseif evt:keyCode=evt:P
+zoomCounter=zoomCounter+0.2
+camera:SetZoom(zoomCounter)
+elseif evt:keyCode=evt:M
+zoomCounter=zoomCounter-0.2
+camera:SetZoom(zoomCounter)
+
+end
+
+
+end
+
+action ReleasedKey(KeyboardEvent evt)
+Vector2 vct
+vct=imageExplorer:GetLinearVelocity()
+
+if evt:keyCode=evt:LEFT
+vct:SetX(0)
+me:imageExplorer:SetLinearVelocity(vct)
+elseif evt:keyCode=evt:UP
+vct:SetY(0)
+me:imageExplorer:SetLinearVelocity(vct)
+elseif evt:keyCode=evt:DOWN
+vct:SetY(0)
+me:imageExplorer:SetLinearVelocity(vct)
+else if evt:keyCode=evt:RIGHT
+vct:SetX(0)
+me:imageExplorer:SetLinearVelocity(vct)
+end
+end
+end
+
+action whereAmI()
+Math mth
+number speakX=mth:Round(me:imageExplorer:GetX())
+number speakY=mth:Round(me:imageExplorer:GetY())
+Speech speech
+speech:Say("You are at"+ speakX + ", " + speakY)
+end
+
+action findClosestItem()
+Vector2 playerVector
+Vector2 itemVector
+Item2D closestItem
+number z=1.0
+number smallestDistance=z:GetMaximumValue()
+Speech speech
+
+
+playerVector:SetX(imageExplorer:GetX())
+playerVector:SetY(imageExplorer:GetY())
+integer lc=0
+
+repeat while lc<pictureElements:GetSize()
+Item2D pictureElement=pictureElements:Get(lc)
+
+
+itemVector:SetX(pictureElement:GetX())
+itemVector:SetY(pictureElement:GetY())
+ number distance=itemVector:Distance(imageExplorer:GetX(), imageExplorer:GetY())
+ if distance<smallestDistance
+smallestDistance=distance
+closestItem=pictureElement
+end
+lc=lc+1
+end
+Math mth
+speech:Say("closest item is " + closestItem:GetDescription() + "at" + mth:Round(closestItem:GetX()) + ", " + mth:Round(closestItem:GetY()))
+end
+
+end //end of class
+

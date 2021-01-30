@@ -1,0 +1,18 @@
+use Libraries.Interface.Behaviors.Behavior
+use Libraries.Interface.Events.BehaviorEvent
+use Libraries.Game.Game   
+use Libraries.Game.Application
+use Libraries.Sound.Speech
+use Libraries.Game.GameStateManager
+class QuitBehavior is Behavior
+    action Run(BehaviorEvent behavior)
+Speech speech
+speech:Say("Exiting")
+
+GameStateManager manager
+Game myGame = manager:GetGame()
+myGame:Exit()
+
+
+end
+end
